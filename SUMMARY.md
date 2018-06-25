@@ -1,5 +1,5 @@
 # Table of contents
 
-* [Initial page](README.md)
+* [前言](README.md)
+* [图像二值化](tu-xiang-er-zhi-hua.md)
 
-* [图像二值化](binarize.md)
