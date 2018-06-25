@@ -1,18 +1,18 @@
 # 图像二值化
 
-![Scan0001.png](.gitbook/assets/scan0001.png)
+![](.gitbook/assets/scan0001.png)
 
 先来看一张报纸上的图片，如果你觉得它有什么特殊含义那你想多了，这是我随手拿的一张报纸然后扫描的。扫描过程中，先设定为24位彩色图像，然后利用`convert`命令进行旋转后将colorspace设定为Gray，然后裁剪并压缩转换为png格式。
 
 下图为右上角的灯笼
 
-![Scan0001\_crop.png](.gitbook/assets/scan0001_crop.png)
+![](.gitbook/assets/scan0001_crop.png)
 
 你可以看到灯笼上有明显的黑点而不是数字图像放大后出现的均匀色彩变化的特点。这是因为打印机只能控制某个点上是否要染墨水，而不能决定一个点上需要多少墨水。无论是喷墨还是激光打印机都是如此。这看似限制了我们对于色彩的表达，但我们可以充分利用视觉的局限性——人眼只能分辨大于一定视角的细节而对于这个视角以内的细节无法分辨——来表达一幅连续而均匀的图像。当我们将许多细小的点混在一个肉眼无法分辨的地方时，大脑就会误以为这就是一个点，而我们所感知的这一点的色彩即为这些小点所产生的混合色。这一混色过程有别于颜色转盘实验中的时间混合，被称为空间混合。彩色电视、计算机显示器都运用了这一原理，但与打印不同，这些显示设备的像素点的三原色发光强度可以被设定为一系列的数值，而不是两种状态。另外，值得注意的是，人眼分辨细节的能力由视角这一概念判断，因此单位面积内可以“欺骗”人眼的最少点数与观看距离成反比。设计中观看距离较远的媒介，如大型LED广告牌，单位面积上的点数就可以少一些。
 
-在日常打印过程中，电脑会自动处理好这样的二值化转换，但现在让我们一起探讨一下这一过程背后的原理。先来看一下我们所需要的外部包：`plt`用于在显示图片，`mpimg`用于图片的输入与输出，最后，`numpy`用于处理数学计算。注意：由`mpimg`读入的图像像素为取值范围是\[0, 1\]的浮点数，所以有时我们需要乘上255并取整来确保算法正常运行。导出图片时，请注意`plt.imshow`函数只能为我们提供预览来验证算法是否工作，如果要查看最终成果，应该使用`plt.imsave`函数导出。如下图这是Bayer抖动算法结果用`imsave`保存的结果，可以说与下文的`imshow`结果是天壤之别。另外，建议检查照片查看器是否存在插值处理（放大后观察像素是方块状还是形成了有梯度的小圆点），如果没有找到合适的查看器，可以下载gimp编辑器中查看。
+在日常打印过程中，电脑会自动处理好这样的二值化转换，但现在让我们一起探讨一下这一过程背后的原理。先来看一下我们所需要的外部包：`plt`用于在显示图片，`mpimg`用于图片的输入与输出，最后，`numpy`用于处理数学计算。注意：由`mpimg`读入的图像像素为取值范围是\[0, 1\]的浮点数，所以有时我们需要乘上255并取整来确保算法正常运行。导出图片时，请注意`plt.imshow`函数只能为我们提供预览来验证算法是否工作，如果要查看最终成果，应该使用`plt.imsave`函数导出。如下图这是Bayer抖动算法结果用`imsave`保存的结果，可以说与下文的`imshow`结果是天壤之别。另外，建议检查照片查看器是否存在插值处理（放大后观察像素是方块状还是形成了有梯度的小圆点），如果没有找到合适的查看器，可以用gimp编辑器查看。
 
-![bayer\_result.png](.gitbook/assets/bayer_result.png)
+![](.gitbook/assets/bayer_result.png)
 
 ```python
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ lena = np.dot(lena[..., :], [0.2126, 0.7152, 0.0722])
 plt.imshow(lena, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_2_1.png)
+![](.gitbook/assets/output_2_1.png)
 
 ## 50%阈值法
 
@@ -40,7 +40,7 @@ lena_1[lena_1 >=0.5] = 1
 plt.imshow(lena_1, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_4_1.png)
+![](.gitbook/assets/output_4_1.png)
 
 ## 抖动技术
 
@@ -101,7 +101,7 @@ for i in range(lena_2.shape[0]):
 plt.imshow(lena_2, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_8_1.png)
+![](.gitbook/assets/output_8_1.png)
 
 ### 误差扩散抖动
 
@@ -109,7 +109,7 @@ plt.imshow(lena_2, cmap='gray')
 
 实现过程中，为了避免边界情况的讨论，我们可以将原图像四周填充`0`，不过这需要索引值的转换。《计算机色彩原理及应用》中介绍，抖动处理时可采用螺旋型扫描的方案（先从左到右，下一行再从右到左，循环往复），但经过实验（将下文函数中`i % 2 == 0`的判断条件直接换为`True`）这似乎并没有起到太大效果。还要注意，这种螺旋型扫描中在从右往左的过程中应该左右反转`mat`，否则无法将误差传递给同一行上左边的像素。此外，为了提高效果，可以借用`cv2`模块中的`resize`函数将图像放大后再处理，尽管关于图像信息量可以说没有增加，但效果确实出奇的好。
 
-![error\_diff\_lar.png](.gitbook/assets/error_diff_lar.png)
+![](.gitbook/assets/error_diff_lar.png)
 
 没错，原图放大后就是黑点和白点。
 
@@ -156,7 +156,7 @@ lena_3 = FS_diffusion(lena_3, diffuse_matrix)
 plt.imshow(lena_3, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_12_1.png)
+![](.gitbook/assets/output_12_1.png)
 
 ```python
 diffuse_matrix_l = np.array([[0, 0, 0, 0, 0],
@@ -180,5 +180,5 @@ lena_3 = FS_diffusion(lena_3, diffuse_matrix_l)
 plt.imshow(lena_3, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_14_1.png)
+![](.gitbook/assets/output_14_1.png)
 
