@@ -37,7 +37,7 @@ plt.imshow(lena, cmap='gray')
 
 
 
-![png](output_2_1.png)
+![png](out_img/output_2_1.png)
 
 
 ## 50%阈值法
@@ -59,7 +59,7 @@ plt.imshow(lena_1, cmap='gray')
 
 
 
-![png](output_4_1.png)
+![png](out_img/output_4_1.png)
 
 
 ## 抖动技术
@@ -134,7 +134,7 @@ plt.imshow(lena_2, cmap='gray')
 
 
 
-![png](output_8_1.png)
+![png](out_img/output_8_1.png)
 
 
 ### 误差扩散抖动
@@ -200,7 +200,7 @@ plt.imshow(lena_3, cmap='gray')
 
 
 
-![png](output_12_1.png)
+![png](out_img/output_12_1.png)
 
 
 
@@ -223,7 +223,7 @@ plt.imshow(lena_3, cmap='gray')
 
 
 
-![png](output_13_1.png)
+![png](out_img/output_13_1.png)
 
 
 
@@ -244,5 +244,5 @@ plt.imshow(lena_3, cmap='gray')
 
 
 
-![png](output_14_1.png)
+![png](out_img/output_14_1.png)
 
