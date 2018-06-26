@@ -169,7 +169,7 @@ lena_3 = FS_diffusion(lena_3, diffuse_matrix_l)
 plt.imshow(lena_3, cmap='gray')
 ```
 
-![png](.gitbook/assets/output_13_1.png)
+![](.gitbook/assets/output_13_1.png)
 
 ```python
 import cv2
@@ -181,4 +181,203 @@ plt.imshow(lena_3, cmap='gray')
 ```
 
 ![](.gitbook/assets/output_14_1.png)
+
+## 加网技术
+
+与前文所述的二值化采用一个灰阶像素寻找一个二值化像素的对应思路不同，加网技术的基本单元是一个网点，网点内还分小栅格。虽然小栅格的取值还是只能为“0”和“1”，但这种方法同样运用了人眼的分辨率局限性，当视角较小时，纸张上反射的白色光与黑色光混合就形成了灰度。因此网点上被油墨覆盖的面积大小（也称网点面积率或网点面积覆盖率）决定了网点所处的灰阶位置。根据网点中小栅格置黑的规则不同，加网技术主要分为调幅加网和调频加网，当然还有组合运用的混合加网。这里的幅度指的是单位元的黑度，频率指的是单位元之间的距离。
+
+### 调幅加网
+
+调幅加网中相邻网点与网点的距离始终一致，同时根据原图中的像素值确定从网点中间开始填涂多少个小栅格。以下为几种常见的加网方案：
+
+  1. 模型法
+  对于特定的灰度等级预先设计好网点模型，比如网点中确定有5×5个小栅格，那么对于它能表现的26种灰阶都要人为设计一种填充方案。转换时每读取一个连续色调的像素，就要去寻找这26种灰阶中最接近的那种，然后将它的对应方案填入生成的图像中。这是调幅加网的最基本思路，而下面所说的两种则是这种方法的改进或更为具体的实现。
+  2. 生长模型法
+  这种方法与前文所述的阈值法有些类似，但阈值法的阈值矩阵作用于一块像素区域上，而生长模型法的阈值矩阵作用于连续色调的同一像素点上通过比较阈值矩阵上的每一单元确定转换后该像素所对应的网点中的置黑小栅格的分布情况。
+  3. 对半取反法
+  生长模型法中每个像素计算网点时都要进行大量赋值操作，为了减少赋值过程所耗的时间，对半取反法中对网点面积率大于50%的网点，以互补的小百分比网点的模型反向获得所需要的网点密度。注意，偏向黑色的点这种方法产生的网点中置黑的小栅格位置与直接生成不同，但网点面积率不变。
+
+
+```python
+screen_matrix = np.array([[18, 12, 11, 14, 19],
+                        [22, 9,  5,  8,  25],
+                        [17, 3,  1,  2,  16],
+                        [24, 7,  4,  6,  23],
+                        [20, 15, 10, 13, 21]])
+```
+
+
+```python
+def growing_model(img, mat):
+    img_x, img_y = img.shape
+    mat_x, mat_y = mat.shape
+    new_im = np.empty([img_x * mat_x, img_y * mat_y])
+    for i in range(img_x):
+        for j in range(img_y):
+            gray_level = round(mat.size * img[i, j])
+            _s = np.zeros_like(mat)
+            _s[mat <= gray_level] = 1.0
+            new_im[i * mat_x: (i+1) * mat_x,
+                   j * mat_y: (j+1) * mat_y] = _s
+    return new_im
+```
+
+
+```python
+lena_4 = lena.copy()
+lena_4 = growing_model(lena_4, screen_matrix)
+plt.imshow(lena_4, cmap='gray')
+```
+
+
+
+
+    <matplotlib.image.AxesImage at 0x7f1e080a4cf8>
+
+
+
+
+![](output_18_1.png)
+
+
+
+```python
+def half_reverse(img, mat):
+    img_x, img_y = img.shape
+    mat_x, mat_y = mat.shape
+    new_im = np.empty([img_x * mat_x, img_y * mat_y])
+    for i in range(img_x):
+        for j in range(img_y):
+            reverse = False
+            gray_level = round(mat.size * img[i, j])
+            
+            if gray_level <= 0.5:
+                _s = np.zeros_like(mat)
+                _s[mat <= gray_level] = 1.0
+            else:
+                _s = np.ones_like(mat)
+                _s[mat > gray_level] = 0.0
+            new_im[i * mat_x: (i+1) * mat_x,
+                   j * mat_y: (j+1) * mat_y] = _s
+    return new_im
+```
+
+
+```python
+lena_4 = lena.copy()
+lena_4 = half_reverse(lena_4, screen_matrix)
+plt.imshow(lena_4, cmap='gray')
+```
+
+
+
+
+    <matplotlib.image.AxesImage at 0x7f1de41457b8>
+
+
+
+
+![](output_20_1.png)
+
+
+
+```python
+lena_4 = lena.copy()
+%timeit -n20 growing_model(lena_4, screen_matrix)
+```
+
+    2.12 s ± 22.1 ms per loop (mean ± std. dev. of 7 runs, 20 loops each)
+
+
+
+```python
+lena_4 = lena.copy()
+%timeit -n20 half_reverse(lena_4, screen_matrix)
+```
+
+    1.88 s ± 37 ms per loop (mean ± std. dev. of 7 runs, 20 loops each)
+
+
+### 调频加网
+
+可以看到，调幅加网产生的图像同模式抖动一样产生了由特定规则造成的模式化的雷同图案。调频加网的计算过程中虽然保留了网点的概念，但是在网点中阈值矩阵中所有元素都被随机函数打乱。这样一来，虽然我们依然采用一个连续像素对应一个网点，但是放大生成的图像后很难再看到调幅加网中产生的规则图案也很难指出哪一群小栅格对应的是一个网点。因此对于生成的图像来说，图像的最小单元可以认为不再是网点，而是一个个的微粒点。这些微粒点的亮度（振幅）固定，不是0即是1，而它们之间的密度（频率）随图像特点改变。调频加网的算法与调幅加网的类似，只是加上了一个随机过程。
+
+
+```python
+def growing_model_fm(img, mat):
+    img_x, img_y = img.shape
+    mat_x, mat_y = mat.shape
+    new_im = np.empty([img_x * mat_x, img_y * mat_y])
+    for i in range(img_x):
+        for j in range(img_y):
+            np.random.shuffle(mat)
+            
+            gray_level = round(mat.size * img[i, j])
+            _s = np.zeros_like(mat)
+            _s[mat <= gray_level] = 1.0
+            new_im[i * mat_x: (i+1) * mat_x,
+                   j * mat_y: (j+1) * mat_y] = _s
+    return new_im
+```
+
+
+```python
+lena_5 = lena.copy()
+lena_5 = growing_model_fm(lena_5, screen_matrix)
+plt.imshow(lena_5, cmap='gray')
+```
+
+
+
+
+    <matplotlib.image.AxesImage at 0x7f1de411d908>
+
+
+
+
+![](output_25_1.png)
+
+
+### 混合加网
+
+混合加网是借鉴调幅和调频的两种网点的特性的加网技术。比如用调幅网点表达中间色调，用调频网点表达高光和暗调。在运用调幅网点时，可能不再采用调幅加网中之前阈值矩阵关于中心基本对称的特点，而是随机移位。这些技术目前由一些大企业专利所有，在此不进行详细讨论，不过我们还是可以根据现有的材料简单地实现一下。
+
+
+```python
+def mixed(img, mat):
+    img_x, img_y = img.shape
+    mat_x, mat_y = mat.shape
+    new_im = np.empty([img_x * mat_x, img_y * mat_y])
+    _mat = mat.copy()
+    for i in range(img_x):
+        for j in range(img_y):
+            gray_level = round(mat.size * img[i, j])
+            if img[i, j] < 0.8 and img[i, j] > 0.2:
+                _s = np.zeros_like(mat)
+                _s[mat <= gray_level] = 1.0
+            else:
+                np.random.shuffle(_mat)
+                _s = np.zeros_like(_mat)
+                _s[_mat <= gray_level] = 1.0
+            new_im[i * mat_x: (i+1) * mat_x,
+                   j * mat_y: (j+1) * mat_y] = _s
+    return new_im
+```
+
+
+```python
+lena_6 = lena.copy()
+lena_6 = growing_model_fm(lena_6, screen_matrix)
+plt.imshow(lena_6, cmap='gray')
+```
+
+
+
+
+    <matplotlib.image.AxesImage at 0x7f1de4078a20>
+
+
+
+
+![](output_28_1.png)
 
