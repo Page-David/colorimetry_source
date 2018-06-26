@@ -237,7 +237,7 @@ plt.imshow(lena_4, cmap='gray')
 
 
 
-![](out_img/output_18_1.png)
+![](.gitbook/assets/output_18_1.png)
 
 
 
@@ -277,7 +277,7 @@ plt.imshow(lena_4, cmap='gray')
 
 
 
-![](out_img/output_20_1.png)
+![](.gitbook/assets/output_20_1.png)
 
 
 
@@ -335,7 +335,7 @@ plt.imshow(lena_5, cmap='gray')
 
 
 
-![](out_img/output_25_1.png)
+![](.gitbook/assets/output_25_1.png)
 
 
 ### 混合加网
@@ -379,5 +379,5 @@ plt.imshow(lena_6, cmap='gray')
 
 
 
-![](out_img/output_28_1.png)
+![](.gitbook/assets/output_28_1.png)
 
