@@ -27,7 +27,7 @@ lena = np.dot(lena[..., :], [0.2126, 0.7152, 0.0722])
 plt.imshow(lena, cmap='gray')
 ```
 
-![](.gitbook/assets/output_2_1.png)
+![](.gitbook/assets/output_2_1%20%281%29.png)
 
 ## 50%阈值法
 
