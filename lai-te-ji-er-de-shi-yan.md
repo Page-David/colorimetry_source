@@ -78,5 +78,101 @@ $$
 注意区分光谱三刺激值与三刺激值。光谱三刺激值是匹配等能光谱（即 $$E(\lambda)=1$$ ）所需的三原色数量，这和我们的颜色匹配方程的定义一致。而三刺激值应该理解为一束光等价于多少的三原色的混合，即三个求和得到的数字。
 {% endhint %}
 
+## 数值运算
+
+###数据导入
+
+这里已经把吉尔德的实验结果拷贝到了`data/Wright_guild.csv`文件中，我们借助`pandas`包读取它，并借助`numpy`及`matplotlib`加以分析。
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+```
 
 
+```python
+Guild_data = pd.read_csv('data/Wright_Guild.csv')
+Guild_data = Guild_data.set_index('wavelength')
+```
+
+然后我们绘制出作者所使用的NPL光源的相对功率分布曲线，显然它不是理想的白光，但因为人眼看上去是白色的，所以我们可以认为它具有相等的三刺激值，我们之后再验证它。
+
+```python
+Guild_data['E_lambda'].plot(color=['k'])
+```
+
+我们可以尝试在麦克斯韦三角形中画出三原色坐标。为了使图标美观，我们把图表右边和上面的直线抹去，然后将坐标轴移动至相交于`(0, 0)`处。
+
+```python
+ax = plt.gca()
+ax.spines['top'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.spines['bottom'].set_position(('data', 0))
+ax.spines['left'].set_position(('data', 0))
+
+coef = Guild_data[['r', 'g', 'b']].values.T
+plt.scatter(coef[0], coef[1])
+```
+
+当然，还有一种表达即将三个三原色坐标以波长为x轴画出。
+
+```python
+Guild_data[['r', 'g', 'b']].plot(color=['r', 'g', 'b'])
+```
+
+现在，我们按上文所述亮度因子的公式求出每个波长上的值和它们对应的三刺激值，再把它们绘制出来。
+
+```python
+Guild_data['L_lambda'] = 1.00*Guild_data['r'] + 4.390*Guild_data['g'] + 0.048*Guild_data['b']
+
+Guild_data['r_'] = Guild_data['r'] * Guild_data['V_lambda'] / Guild_data['L_lambda']
+Guild_data['g_'] = Guild_data['g'] * Guild_data['V_lambda'] / Guild_data['L_lambda']
+Guild_data['b_'] = Guild_data['b'] * Guild_data['V_lambda'] / Guild_data['L_lambda']
+
+Guild_data[['r_', 'g_', 'b_']].plot(color=['r', 'g', 'b'])
+```
+
+```python
+r_sum = np.sum(Guild_data['r_']*Guild_data['E_lambda'])
+g_sum = np.sum(Guild_data['g_']*Guild_data['E_lambda'])
+b_sum = np.sum(Guild_data['b_']*Guild_data['E_lambda'])
+```
+
+
+```python
+r_sum, g_sum, b_sum
+```
+
+
+
+
+    (3.583893668285496, 3.5913792051088373, 3.5908811663897824)
+
+
+
+
+```python
+Guild_data['light'] = Guild_data['E_lambda'] * Guild_data['V_lambda']
+trim_value_r = 1.00*Guild_data['r_']*Guild_data['E_lambda']
+trim_value_g = 4.390*Guild_data['g_']*Guild_data['E_lambda']
+trim_value_b = 0.048*Guild_data['b_']*Guild_data['E_lambda']
+```
+
+
+```python
+light_sum = np.sum(Guild_data['light'])
+r_sum_ = np.sum(trim_value_r)
+g_sum_ = np.sum(trim_value_g)
+b_sum_ = np.sum(trim_value_b)
+```
+
+
+```python
+light_sum, r_sum_ + g_sum_ + b_sum_
+```
+
+
+
+
+    (19.5224106747, 19.522410674699998)
